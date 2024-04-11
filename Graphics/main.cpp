@@ -10,6 +10,10 @@ using namespace std;
 const double PI = 3.14;
 const int GSZ = 100;
 
+const int TH = 512; // must be a power of 2
+const int TW = 512; // must be a power of 2
+unsigned char tx0[TH][TW][3];
+
 double angle = 0;
 
 bool stopHydraulicErrosion = false;
@@ -34,7 +38,7 @@ double angular_speed = 0;
 double ground[GSZ][GSZ] = { 0 };
 double riverWaterHight[GSZ][GSZ] = { 0 };
 
-POINT2D* desiredPoint = NULL;
+POINT2D desiredPoint = {-100, -100};
 
 
 
@@ -46,6 +50,32 @@ void initRiverWaterHight() {
 	for (int i = 0; i < GSZ; i++) {
 		for (int j = 0; j < GSZ; j++) {
 			riverWaterHight[i][j] = ground[i][j] - 0.001;
+		}
+	}
+}
+
+void setTexture(int tNum) {
+	int i, j;
+	int tmp;
+	if (tNum == 1)// road texture 
+	{
+		for (int i = 0; i < TH; i++)
+		{
+			for (int j = 0; j < TW; j++)
+			{
+				tmp = rand()%20;
+				if (i < 20 || i > TH - 20 || fabs(TH/2-i) < 10 && j < TW / 2) {
+					tx0[i][j][0] = 220 + tmp;
+					tx0[i][j][1] = 220 + tmp;
+					tx0[i][j][2] = 0;
+				}
+				else // gray 
+				{
+					tx0[i][j][0] = 180 + tmp;
+					tx0[i][j][1] = 180 + tmp;
+					tx0[i][j][2] = 180 + tmp;
+				}
+			}
 		}
 	}
 }
@@ -68,6 +98,16 @@ void init()
 	Smooth();
 	
 	initRiverWaterHight();
+
+	
+	//road texture
+	setTexture(1);// Road
+	glBindTexture(GL_TEXTURE_2D,1);
+	glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, TW, TH, 0, GL_RGB, GL_UNSIGNED_BYTE, tx0);
 	
 }
 
@@ -118,44 +158,39 @@ void FloodFillIterative(int x, int z)
 		// 2. save current point coordinates
 		x = current.x;  
 		z = current.z;
-		// 3. add all relevant neighbour points to myStack
-		if (ground[x][z] <= 0 && ground[x][z] <= riverWaterHight[x][z]) {
-			// try going up
-			if (x + 2 < GSZ && ground[x + 2][z] >= riverWaterHight[x + 2][z])
+		if (ground[x][z] > 0 && ground[x][z] > riverWaterHight[x][z] && ((x + 2 < GSZ && ground[x + 2][z] < riverWaterHight[x + 2][z]) || (x - 2 >= 0 && ground[x - 2][z] < riverWaterHight[x - 2][z]) || (z + 2 < GSZ && ground[x][z + 2] < riverWaterHight[x][z + 2]) || (z - 2 >= 0 && ground[x][z - 2] < riverWaterHight[x][z - 2]))) {
+			desiredPoint.x = x;
+			desiredPoint.z = z;
+			break;
+		}
+		else {
+			// 3. add all relevant neighbour points to myStack
+			if (x + 2 < GSZ )
 			{
 				current.x = x + 2;
 				current.z = z;
 				myStack.push_back(current);
 			}
 			// try going down
-			if (x - 2 >= 0 && ground[x - 2][z] >= riverWaterHight[x - 2][z])
+			if (x - 2 >= 0 )
 			{
 				current.x = x - 2;
 				current.z = z;
 				myStack.push_back(current);
 			}
 			// try going right
-			if (z + 2 < GSZ && ground[x][z + 2] >= riverWaterHight[x][z + 2])
+			if (z + 2 < GSZ )
 			{
 				current.x = x;
 				current.z = z + 2;
 				myStack.push_back(current);
 			}
 			// try going left
-			if (z - 2 >= 0 && ground[x][z - 2] >= riverWaterHight[x][z - 2])
+			if (z - 2 >= 0)
 			{
 				current.x = x;
 				current.z = z - 2;
 				myStack.push_back(current);
-			}
-		}
-		else {
-			// try going up
-			if ((x + 2 < GSZ && ground[x + 2][z] < riverWaterHight[x + 2][z]) || (x - 2 >= 0 && ground[x - 2][z] < riverWaterHight[x - 2][z]) || (z + 2 < GSZ && ground[x][z + 2] < riverWaterHight[x][z + 2]) || (z - 2 >= 0 && ground[x][z - 2] < riverWaterHight[x][z - 2]))
-			{
-				POINT2D thePoint = { x, z };
-				desiredPoint = &thePoint;
-				break;
 			}
 		}
 	}
@@ -303,6 +338,14 @@ void DrawFloor()
 
 }
 
+void flattenRoad() {
+	for (int i = 0; i + desiredPoint.x < GSZ; i++) {
+		ground[i + desiredPoint.x][desiredPoint.z] = 4;
+	}
+}
+
+
+
 // put all the drawings here
 void display()
 {
@@ -322,19 +365,30 @@ void display()
 
 	DrawFloor();
 	
-	if (!stopHydraulicErrosion) {
+	if (!stopHydraulicErrosion && desiredPoint.x == -100) {
 		for (int i = 0; i < 2; i++)
 		{
 			HydraulicErrosion();
 		}
 	}
 	else {
-		if (desiredPoint == NULL) {
+		if (desiredPoint.x == -100) {
 			int randomX = rand() % GSZ;
 			int randomZ = rand() % GSZ;
 			FloodFillIterative(randomX, randomZ);
 		}
 	}
+
+	
+	if (desiredPoint.x != -100) {
+	//	flattenRoad(); not working
+		ground[desiredPoint.x][desiredPoint.z] = 12;
+	}
+	
+	
+	
+
+
 	
 	
 
