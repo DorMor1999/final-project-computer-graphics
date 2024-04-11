@@ -3,6 +3,9 @@
 #include <time.h>
 #include <math.h>
 #include "glut.h"
+#include <vector>
+
+using namespace std;
 
 const double PI = 3.14;
 const int GSZ = 100;
@@ -12,7 +15,10 @@ double angle = 0;
 bool stopHydraulicErrosion = false;
 
 
-
+typedef struct {
+	int x;
+	int z;
+} POINT2D;
 
 typedef struct {
 	double x, y, z;
@@ -27,6 +33,8 @@ double angular_speed = 0;
 
 double ground[GSZ][GSZ] = { 0 };
 double riverWaterHight[GSZ][GSZ] = { 0 };
+
+POINT2D* desiredPoint = NULL;
 
 
 
@@ -94,7 +102,64 @@ void UpdateGround3()
 
 }
 
+// uses stack to uvercome the recursion
+void FloodFillIterative(int x, int z)
+{
+	vector <POINT2D> myStack;
 
+	POINT2D current = {x, z};
+	myStack.push_back(current);
+
+	while (!myStack.empty())
+	{
+		// 1. extract last element from stack
+		current = myStack.back();
+		myStack.pop_back();
+		// 2. save current point coordinates
+		x = current.x;  
+		z = current.z;
+		// 3. add all relevant neighbour points to myStack
+		if (ground[x][z] <= 0 && ground[x][z] <= riverWaterHight[x][z]) {
+			// try going up
+			if (x + 2 < GSZ && ground[x + 2][z] >= riverWaterHight[x + 2][z])
+			{
+				current.x = x + 2;
+				current.z = z;
+				myStack.push_back(current);
+			}
+			// try going down
+			if (x - 2 >= 0 && ground[x - 2][z] >= riverWaterHight[x - 2][z])
+			{
+				current.x = x - 2;
+				current.z = z;
+				myStack.push_back(current);
+			}
+			// try going right
+			if (z + 2 < GSZ && ground[x][z + 2] >= riverWaterHight[x][z + 2])
+			{
+				current.x = x;
+				current.z = z + 2;
+				myStack.push_back(current);
+			}
+			// try going left
+			if (z - 2 >= 0 && ground[x][z - 2] >= riverWaterHight[x][z - 2])
+			{
+				current.x = x;
+				current.z = z - 2;
+				myStack.push_back(current);
+			}
+		}
+		else {
+			// try going up
+			if ((x + 2 < GSZ && ground[x + 2][z] < riverWaterHight[x + 2][z]) || (x - 2 >= 0 && ground[x - 2][z] < riverWaterHight[x - 2][z]) || (z + 2 < GSZ && ground[x][z + 2] < riverWaterHight[x][z + 2]) || (z - 2 >= 0 && ground[x][z - 2] < riverWaterHight[x][z - 2]))
+			{
+				POINT2D thePoint = { x, z };
+				desiredPoint = &thePoint;
+				break;
+			}
+		}
+	}
+}
 
 void HydraulicErrosion() {
 	
@@ -258,10 +323,16 @@ void display()
 	DrawFloor();
 	
 	if (!stopHydraulicErrosion) {
-		for (int i = 0; i < 1; i++)
+		for (int i = 0; i < 2; i++)
 		{
 			HydraulicErrosion();
-			
+		}
+	}
+	else {
+		if (desiredPoint == NULL) {
+			int randomX = rand() % GSZ;
+			int randomZ = rand() % GSZ;
+			FloodFillIterative(randomX, randomZ);
 		}
 	}
 	
