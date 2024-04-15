@@ -42,6 +42,12 @@ bool floodFillVisited[GSZ][GSZ] = { false };
 POINT2D desiredPoint = {-100, -100};
 
 
+typedef struct {
+	double red, green, blue;
+} COLOR;
+COLOR roofColors[3] = { {100.0 / 255.0, 169.0 / 255.0, 169.0 / 255.0} , {178.0 / 255.0, 34.0 / 255.0, 34.0 / 255.0}, {110.0 / 255.0, 42.0 / 255.0, 42.0 / 255.0} };
+int indexRoofColors = 0; //0 or 1 or 2
+
 
 void UpdateGround3();
 void Smooth();
@@ -173,6 +179,10 @@ void UpdateGround3()
 
 }
 
+bool seaUp(int x, int z) {
+	return x >= 0 && x < GSZ && z >= 0 && z < GSZ && 0 > ground[x][z] && 0 > riverWaterHight[x][z];
+}
+
 // uses stack to uvercome the recursion
 void FloodFillIterative(int x, int z)
 {
@@ -189,7 +199,7 @@ void FloodFillIterative(int x, int z)
 		// 2. save current point coordinates
 		x = current.x;  
 		z = current.z;
-		if (ground[x][z] > 0 && ground[x][z] > riverWaterHight[x][z] && ((x + 2 < GSZ && ground[x + 2][z] < riverWaterHight[x + 2][z]) || (x - 2 >= 0 && ground[x - 2][z] < riverWaterHight[x - 2][z]) || (z + 2 < GSZ && ground[x][z + 2] < riverWaterHight[x][z + 2]) || (z - 2 >= 0 && ground[x][z - 2] < riverWaterHight[x][z - 2]))) {
+		if (ground[x][z] > 0 && ground[x][z] > riverWaterHight[x][z] && ((x + 2 < GSZ && ground[x + 2][z] < riverWaterHight[x + 2][z] && 0 < riverWaterHight[x + 2][z] && (seaUp(x, z + 4) || seaUp(x, z - 4))) || (x - 2 >= 0 && ground[x - 2][z] < riverWaterHight[x - 2][z] && 0 < riverWaterHight[x - 2][z] && (seaUp(x, z + 4) || seaUp(x, z - 4))) || (z + 2 < GSZ && ground[x][z + 2] < riverWaterHight[x][z + 2] && 0 < riverWaterHight[x][z + 2] && (seaUp(x + 4, z) || seaUp(x - 4, z))) || (z - 2 >= 0 && ground[x][z - 2] < riverWaterHight[x][z - 2] && 0 < riverWaterHight[x][z - 2] && (seaUp(x + 4, z) || seaUp(x - 4, z))))) {
 			desiredPoint.x = x;
 			desiredPoint.z = z;
 			break;
@@ -374,30 +384,123 @@ void DrawFloor()
 
 // true if above sea and river
 bool checkpointAboveAllWater(int x, int z) {
-	return ground[x][z] > 0 && ground[x][z] > riverWaterHight[x][z];
+	return x >= 0 && x < GSZ && z >= 0 && z < GSZ && ground[x][z] > 0 && ground[x][z] > riverWaterHight[x][z];
 }
 
-void DrawRoad(int x, int z) {
-	glEnable(GL_TEXTURE_2D);
-	glBindTexture(GL_TEXTURE_2D, 1);
-	glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
-	glBegin(GL_POLYGON);
-	glVertex3d(x - GSZ / 2, ground[x][z] + 0.1, z - GSZ / 2);
-	glVertex3d(x - 1 - GSZ / 2, ground[x - 1][z] + 0.1, z - GSZ / 2);
-	glVertex3d(x - 1 - GSZ / 2, ground[x - 1][z - 1] + 0.1, z - 1 - GSZ / 2);
-	glVertex3d(x - GSZ / 2, ground[x][z - 1] + 0.1, z - 1 - GSZ / 2);
-	glEnd();
-	glDisable(GL_TEXTURE_2D);
+// cone
+void DrawCone(int n, double topr, double bottomr, double topY, double downY)
+{
+	double alpha, teta = 2 * PI / n;
+	COLOR currentColor = roofColors[indexRoofColors]; // Store the initial color
+	for (alpha = 0; alpha < 2 * PI; alpha += teta)
+	{
+		glBegin(GL_POLYGON);
+		glColor3d(currentColor.red, currentColor.green, currentColor.blue);;
+		glVertex3d(topr * sin(alpha), topY, topr * cos(alpha));// 1
+		glVertex3d(topr * sin(alpha + teta), topY, topr * cos(alpha + teta)); //2
+		glVertex3d(bottomr * sin(alpha + teta), downY, bottomr * cos(alpha + teta));// 3
+		glVertex3d(bottomr * sin(alpha), downY, bottomr * cos(alpha)); //4
+		glEnd();
+
+		// Update the current color for the next polygon
+		currentColor.red -= 0.05;
+		currentColor.green -= 0.05;
+		currentColor.blue -= 0.05;
+	}
+}
+
+// n = 4 is squre
+void DrawCylinder(int n, double topY, double downY)
+{
+	COLOR wallColor = { 244.0 / 255.0, 164.0 / 255.0, 96.0 / 255.0 };
+	double alpha, teta = 2 * PI / n;
+	for (alpha = 0; alpha < 2 * PI; alpha += teta)
+	{
+		glBegin(GL_POLYGON);
+		glColor3d(wallColor.red, wallColor.green, wallColor.blue);
+		glVertex3d(sin(alpha), topY, cos(alpha));
+		glVertex3d(sin(alpha + teta), topY, cos(alpha + teta));
+		glVertex3d(sin(alpha + teta), downY, cos(alpha + teta));
+		glVertex3d(sin(alpha), downY, cos(alpha));
+		glEnd();
+		wallColor.red -= 0.05;
+		wallColor.green -= 0.05;
+		wallColor.blue -= 0.05;
+	}
+}
+
+void drawWindows(int numWindows, int numFloor, COLOR* windowColor) {
+	double radius = 1.01;
+	int parts = (numWindows * 2) + 1;
+	double alpha = 0, teta = PI / 2;
+	double x2 = sin(alpha + teta);
+	double y2 = 1;
+	double z2 = cos(alpha + teta);
+	double x1 = sin(alpha);
+	double y1 = 1;
+	double z1 = cos(alpha);
+	double distance = sqrt(pow(x2 - x1, 2) + pow(y2 - y1, 2) + pow(z2 - z1, 2));
+	double size = distance / parts;
+	double dx = (x2 - x1) / parts;
+	double dz = (z2 - z1) / parts;
+	for (int i = 0; i < parts; i++) {
+		if (i % 2 == 1) {
+			glBegin(GL_POLYGON);
+			glColor3d(windowColor->red, windowColor->green, windowColor->blue);
+			glVertex3d(radius * (x1 + (i * dx)), numFloor - 0.33, radius * (z1 + (i * dz)));// left top
+			glVertex3d(radius * (x1 + ((i + 1) * dx)), numFloor - 0.33, radius * (z1 + ((i + 1) * dz)));//right top
+			glVertex3d(radius * (x1 + ((i + 1) * dx)), numFloor - 0.66, radius * (z1 + ((i + 1) * dz)));//right bottom
+			glVertex3d(radius * (x1 + (i * dx)), numFloor - 0.66, radius * (z1 + (i * dz)));//left bottom
+			glEnd();
+		}
+	}
+}
+
+
+
+
+void drawFloorBilding(int numFloor, int numWindows) {
+	//high layer
+	DrawCylinder(4, numFloor - 0.00, numFloor - 0.33);
+	//windows layer
+	DrawCylinder(4, numFloor - 0.33, numFloor - 0.66);
+	//bottom layer 
+	DrawCylinder(4, numFloor - 0.66, numFloor - 1.00);
+
+	//draw windows
+	COLOR windowColor = { 0.0, 0.0, 0.8 };
+	for (int i = 0; i <= 360; i += 90) {
+		glPushMatrix();
+		glRotated(i, 0, 1, 0);
+		drawWindows(numWindows, numFloor, &windowColor);
+		glPopMatrix();
+		windowColor.blue -= 0.05;
+	}
+}
+
+void drawHouse(int numFloors, int numWindows) {
+	//draw walls
+	for (int i = 1; i <= numFloors; i++) {
+		drawFloorBilding(i, numWindows);
+	}
+
+	// draw roof
+	DrawCone(4, 0, 1, numFloors + 1.00, numFloors + 0.00);
+}
+
+bool CheckForHouse(int x, int z) {
+	return x - 1 >= 0 && x + 1 < GSZ && z - 1 >= 0 && z + 1 < GSZ && checkpointAboveAllWater(x, z) && checkpointAboveAllWater(x, z - 1) && checkpointAboveAllWater(x, z + 1) && checkpointAboveAllWater(x + 1, z) && checkpointAboveAllWater(x + 1, z - 1) && checkpointAboveAllWater(x + 1, z + 1) && checkpointAboveAllWater(x - 1, z) && checkpointAboveAllWater(x - 1, z - 1) && checkpointAboveAllWater(x - 1, z + 1);
 }
 
 void flatRight() {
 	int x = desiredPoint.x;
 	int z = desiredPoint.z;
 	int counter = 0;
-	glEnable(GL_TEXTURE_2D);
-	glBindTexture(GL_TEXTURE_2D, 1);
-	glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
+	
 	while (x > 0 && checkpointAboveAllWater(x, z) && checkpointAboveAllWater(x, z - 1) && checkpointAboveAllWater(x, z + 1) && checkpointAboveAllWater(x - 1, z) && checkpointAboveAllWater(x - 1, z - 1) && checkpointAboveAllWater(x - 1, z + 1) && z - 1 >= 0 && z + 1 < GSZ) {
+		glEnable(GL_TEXTURE_2D);
+		glBindTexture(GL_TEXTURE_2D, 1);
+		glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
 		ground[x][z - 1] = ground[x][z + 1] = ground[x][z];
 		ground[x-1][z - 1] = ground[x-1][z + 1] = ground[x-1][z];
 		riverWaterHight[x][z - 1] = riverWaterHight[x][z + 1] = riverWaterHight[x][z] = -1;
@@ -426,20 +529,49 @@ void flatRight() {
 			glEnd();
 			
 		}
+		glDisable(GL_TEXTURE_2D);
+
+		//buildings
+		if (counter % 2 == 0 && CheckForHouse(x, z-2))
+		{	
+			indexRoofColors = counter % 3;
+			int numWindows = (counter % 4) + 1;
+			int numFloors = (counter % 4) + 1;
+			glPushMatrix();
+			glTranslated(z - 2 - GSZ / 2, ground[x][z - 2] + 0.15, x - GSZ / 2);
+			glRotated(45, 0, 1, 0);
+			glScaled(1, numFloors / 2 + 1, 1);
+			drawHouse(numFloors, numWindows);//mid bottom always (0, 0, 0) to changed translate this with tranformation
+			glPopMatrix();
+		}
+		if (counter % 2 == 0 && CheckForHouse(x, z + 2))
+		{
+			indexRoofColors = counter % 3;
+			int numWindows = (counter % 4) + 1;
+			int numFloors = (counter % 4) + 1;
+			glPushMatrix();
+			glTranslated(z + 2 - GSZ / 2, ground[x][z + 2] + 0.15, x - GSZ / 2);
+			glRotated(45, 0, 1, 0);
+			glScaled(1, numFloors / 2 + 1, 1);
+			drawHouse(numFloors, numWindows);//mid bottom always (0, 0, 0) to changed translate this with tranformation
+			glPopMatrix();
+		}
+			
 		x--;
 		counter++;
 	}
-	glDisable(GL_TEXTURE_2D);
+	
 }
 
 void flatLeft() {
 	int x = desiredPoint.x;
 	int z = desiredPoint.z;
 	int counter = 0;
-	glEnable(GL_TEXTURE_2D);
-	glBindTexture(GL_TEXTURE_2D, 1);
-	glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
+	
 	while (x + 1 < GSZ && checkpointAboveAllWater(x, z) && checkpointAboveAllWater(x, z - 1) && checkpointAboveAllWater(x, z + 1) && checkpointAboveAllWater(x + 1, z) && checkpointAboveAllWater(x + 1, z - 1) && checkpointAboveAllWater(x + 1, z + 1) && z - 1 >= 0 && z + 1 < GSZ) {
+		glEnable(GL_TEXTURE_2D);
+		glBindTexture(GL_TEXTURE_2D, 1);
+		glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
 		ground[x ][z - 1] = ground[x][z + 1] = ground[x][z];
 		ground[x + 1][z - 1] = ground[x + 1][z + 1] = ground[x + 1][z];
 		riverWaterHight[x][z - 1] = riverWaterHight[x][z + 1] = riverWaterHight[x][z] = -1;
@@ -468,10 +600,38 @@ void flatLeft() {
 			glTexCoord2d(0, 2); glVertex3d(z + 1 - GSZ / 2, ground[x][z + 1] + 0.1, x - GSZ / 2);
 			glEnd();
 		}
+		glDisable(GL_TEXTURE_2D);
+
+		//buildings
+		if (counter % 2 == 0 && CheckForHouse(x, z - 2))
+		{
+			indexRoofColors = counter % 3;
+			int numWindows = (counter % 4) + 1;
+			int numFloors = (counter % 4) + 1;
+			glPushMatrix();
+			glTranslated(z - 2 - GSZ / 2, ground[x][z - 2] + 0.15, x - GSZ / 2);
+			glRotated(45, 0, 1, 0);
+			glScaled(1, numFloors / 2 + 1, 1);
+			drawHouse(numFloors, numWindows);//mid bottom always (0, 0, 0) to changed translate this with tranformation
+			glPopMatrix();
+		}
+		if (counter % 2 == 0 && CheckForHouse(x, z + 2))
+		{
+			indexRoofColors = counter % 3;
+			int numWindows = (counter % 4) + 1;
+			int numFloors = (counter % 4) + 1;
+			glPushMatrix();
+			glTranslated(z + 2 - GSZ / 2, ground[x][z + 2] + 0.15, x - GSZ / 2);
+			glRotated(45, 0, 1, 0);
+			glScaled(1, numFloors / 2 + 1, 1);
+			drawHouse(numFloors, numWindows);//mid bottom always (0, 0, 0) to changed translate this with tranformation
+			glPopMatrix();
+		}
+
 		counter++;
 		x++;
 	}
-	glDisable(GL_TEXTURE_2D);
+	
 }
 
 void flatUp() {
@@ -577,7 +737,7 @@ void flattenRoad() {
 		bool isRiverWaterLeft = riverWaterHight[desiredPoint.x - 2][desiredPoint.z] > 0 && riverWaterHight[desiredPoint.x - 2][desiredPoint.z] > ground[desiredPoint.x - 2][desiredPoint.z];
 		if (isRiverWaterLeft)
 		{
-			//flatLeft();
+			flatLeft();
 			return;
 		}
 	}
@@ -595,16 +755,10 @@ void flattenRoad() {
 		bool isRiverWaterDown = riverWaterHight[desiredPoint.x][desiredPoint.z - 2] > 0 && riverWaterHight[desiredPoint.x][desiredPoint.z - 2] > ground[desiredPoint.x][desiredPoint.z - 2];
 		if (isRiverWaterDown)
 		{
-			flatDown();
+			//flatDown();
 			return;
 		}
 	}
-	
-	
-	
-	//for (int i = 0; i + desiredPoint.x < GSZ; i++) {
-	//	ground[i + desiredPoint.x][desiredPoint.z] = 4;
-	//}
 }
 
 
@@ -625,6 +779,8 @@ void display()
 
 	glMatrixMode(GL_MODELVIEW);
 	glLoadIdentity(); // unity matrix of model
+
+	
 
 	DrawFloor();
 	
