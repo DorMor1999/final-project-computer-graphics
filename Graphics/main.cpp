@@ -501,10 +501,10 @@ void flatRight() {
 		glEnable(GL_TEXTURE_2D);
 		glBindTexture(GL_TEXTURE_2D, 1);
 		glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
-		ground[x][z - 1] = ground[x][z + 1] = ground[x][z];
-		ground[x-1][z - 1] = ground[x-1][z + 1] = ground[x-1][z];
-		riverWaterHight[x][z - 1] = riverWaterHight[x][z + 1] = riverWaterHight[x][z] = -1;
-		riverWaterHight[x-1][z - 1] = riverWaterHight[x-1][z + 1] = riverWaterHight[x-1][z] = -1;
+		ground[x][z - 2] = ground[x][z + 2] = ground[x][z - 1] = ground[x][z + 1] = ground[x][z];
+		ground[x - 1][z - 2] = ground[x - 1][z + 2] = ground[x-1][z - 1] = ground[x-1][z + 1] = ground[x-1][z];
+		riverWaterHight[x][z - 2] = riverWaterHight[x][z + 2] = riverWaterHight[x][z - 1] = riverWaterHight[x][z + 1] = riverWaterHight[x][z] = -1;
+		riverWaterHight[x - 1][z - 2] = riverWaterHight[x - 1][z + 2] = riverWaterHight[x-1][z - 1] = riverWaterHight[x-1][z + 1] = riverWaterHight[x-1][z] = -1;
 		if (counter % 8 == 0) {//croos walk
 			glBindTexture(GL_TEXTURE_2D, 2);
 			glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
@@ -560,6 +560,54 @@ void flatRight() {
 		x--;
 		counter++;
 	}
+
+	//bridge part
+	while (x + 1 < GSZ) {
+		if (checkpointAboveAllWater(x,z) && checkpointAboveAllWater(x, z + 1) && checkpointAboveAllWater(x, z - 1)) {
+			ground[x][z - 1] = ground[x][z + 1] = ground[x][z];
+			ground[x + 1][z - 1] = ground[x + 1][z + 1] = ground[x + 1][z];
+			riverWaterHight[x][z - 1] = riverWaterHight[x][z + 1] = riverWaterHight[x][z] = -1;
+			riverWaterHight[x + 1][z - 1] = riverWaterHight[x + 1][z + 1] = riverWaterHight[x + 1][z] = -1;
+			//road
+			glEnable(GL_TEXTURE_2D);
+			glBindTexture(GL_TEXTURE_2D, 1);
+			glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
+			glBegin(GL_POLYGON);
+			glTexCoord2d(0, 2); glVertex3d(z + 1 - GSZ / 2, ground[x][z + 1] + 0.1, x - GSZ / 2);
+			glTexCoord2d(0, 0); glVertex3d(z - 1 - GSZ / 2, ground[x][z - 1] + 0.1, x - GSZ / 2);
+			if (checkpointAboveAllWater(x + 1, z) && checkpointAboveAllWater(x + 1, z + 1) && checkpointAboveAllWater(x + 1, z - 1)) {
+				glTexCoord2d(1, 0); glVertex3d(z - 1 - GSZ / 2, ground[x + 1][z - 1] + 0.1, x + 1 - GSZ / 2);
+				glTexCoord2d(1, 2); glVertex3d(z + 1 - GSZ / 2, ground[x + 1][z + 1] + 0.1, x + 1 - GSZ / 2);
+			}
+			else
+			{
+				glTexCoord2d(1, 0); glVertex3d(z - 1 - GSZ / 2, 0.5, x + 1 - GSZ / 2);
+				glTexCoord2d(1, 2); glVertex3d(z + 1 - GSZ / 2, 0.5, x + 1 - GSZ / 2);
+			}
+			glEnd();
+			glDisable(GL_TEXTURE_2D);
+		}
+		else {
+			//road bridge
+			glEnable(GL_TEXTURE_2D);
+			glBindTexture(GL_TEXTURE_2D, 1);
+			glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
+			glBegin(GL_POLYGON);
+			glTexCoord2d(0, 2); glVertex3d(z + 1 - GSZ / 2, 0.5, x - GSZ / 2);
+			glTexCoord2d(0, 0); glVertex3d(z - 1 - GSZ / 2, 0.5, x - GSZ / 2);
+			if (checkpointAboveAllWater(x + 1, z) && checkpointAboveAllWater(x + 1, z + 1) && checkpointAboveAllWater(x + 1, z - 1)) {
+				glTexCoord2d(1, 0); glVertex3d(z - 1 - GSZ / 2, ground[x + 1][z - 1] + 0.1, x + 1 - GSZ / 2);
+				glTexCoord2d(1, 2); glVertex3d(z + 1 - GSZ / 2, ground[x + 1][z + 1] + 0.1, x + 1 - GSZ / 2);
+			}
+			else {
+				glTexCoord2d(1, 0); glVertex3d(z - 1 - GSZ / 2, 0.5, x + 1 - GSZ / 2);
+				glTexCoord2d(1, 2); glVertex3d(z + 1 - GSZ / 2, 0.5, x + 1 - GSZ / 2);
+			}
+			glEnd();
+			glDisable(GL_TEXTURE_2D);
+		}
+		x++;
+	}
 	
 }
 
@@ -572,10 +620,10 @@ void flatLeft() {
 		glEnable(GL_TEXTURE_2D);
 		glBindTexture(GL_TEXTURE_2D, 1);
 		glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
-		ground[x ][z - 1] = ground[x][z + 1] = ground[x][z];
-		ground[x + 1][z - 1] = ground[x + 1][z + 1] = ground[x + 1][z];
-		riverWaterHight[x][z - 1] = riverWaterHight[x][z + 1] = riverWaterHight[x][z] = -1;
-		riverWaterHight[x + 1][z - 1] = riverWaterHight[x + 1][z + 1] = riverWaterHight[x + 1][z] = -1;
+		ground[x][z - 2] = ground[x][z + 2] = ground[x ][z - 1] = ground[x][z + 1] = ground[x][z];
+		ground[x + 1][z - 2] = ground[x + 1][z + 2] = ground[x + 1][z - 1] = ground[x + 1][z + 1] = ground[x + 1][z];
+		riverWaterHight[x][z - 2] = riverWaterHight[x][z + 2] = riverWaterHight[x][z - 1] = riverWaterHight[x][z + 1] = riverWaterHight[x][z] = -1;
+		riverWaterHight[x + 1][z - 2] = riverWaterHight[x + 1][z +  2] = riverWaterHight[x + 1][z - 1] = riverWaterHight[x + 1][z + 1] = riverWaterHight[x + 1][z] = -1;
 		
 		if (counter % 8 == 0) {//croos walk
 			glBindTexture(GL_TEXTURE_2D, 2);
@@ -638,14 +686,14 @@ void flatUp() {
 	int x = desiredPoint.x;
 	int z = desiredPoint.z;
 	int counter = 0;
-	glEnable(GL_TEXTURE_2D);
-	glBindTexture(GL_TEXTURE_2D, 1);
-	glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
 	while (z > 0 && checkpointAboveAllWater(x, z) && checkpointAboveAllWater(x - 1, z) && checkpointAboveAllWater(x + 1, z) && checkpointAboveAllWater(x, z - 1) && checkpointAboveAllWater(x - 1, z - 1) && checkpointAboveAllWater(x + 1, z - 1) && x - 1 >= 0 && x + 1 < GSZ) {
-		ground[x - 1][z] = ground[x + 1][z] = ground[x][z];
-		ground[x - 1][z - 1] = ground[x + 1][z - 1] = ground[x][z - 1];
-		riverWaterHight[x - 1][z] = riverWaterHight[x + 1][z] = riverWaterHight[x][z] = -1;
-		riverWaterHight[x - 1][z-1] = riverWaterHight[x + 1][z-1] = riverWaterHight[x][z-1] = -1;
+		glEnable(GL_TEXTURE_2D);
+		glBindTexture(GL_TEXTURE_2D, 1);
+		glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
+		ground[x - 2][z] = ground[x + 2][z] = ground[x - 1][z] = ground[x + 1][z] = ground[x][z];
+		ground[x - 2][z - 1] = ground[x + 2][z - 1] = ground[x - 1][z - 1] = ground[x + 1][z - 1] = ground[x][z - 1];
+		riverWaterHight[x - 2][z] = riverWaterHight[x + 2][z] = riverWaterHight[x - 1][z] = riverWaterHight[x + 1][z] = riverWaterHight[x][z] = -1;
+		riverWaterHight[x - 2][z - 1] = riverWaterHight[x + 2][z - 1] = riverWaterHight[x - 1][z-1] = riverWaterHight[x + 1][z-1] = riverWaterHight[x][z-1] = -1;
 		if (counter % 8 == 0) {//croos walk
 			
 			glBindTexture(GL_TEXTURE_2D, 2);
@@ -671,24 +719,52 @@ void flatUp() {
 			glEnd();
 
 		}
+		glDisable(GL_TEXTURE_2D);
+
+		//buildings
+		if (counter % 2 == 0 && CheckForHouse(x - 2, z))
+		{
+			indexRoofColors = counter % 3;
+			int numWindows = (counter % 4) + 1;
+			int numFloors = (counter % 4) + 1;
+			glPushMatrix();
+			glTranslated(z - GSZ / 2, ground[x - 2][z] + 0.15, x - 2 - GSZ / 2);
+			glRotated(45, 0, 1, 0);
+			glScaled(1, numFloors / 2 + 1, 1);
+			drawHouse(numFloors, numWindows);//mid bottom always (0, 0, 0) to changed translate this with tranformation
+			glPopMatrix();
+		}
+		if (counter % 2 == 0 && CheckForHouse(x + 2, z))
+		{
+			indexRoofColors = counter % 3;
+			int numWindows = (counter % 4) + 1;
+			int numFloors = (counter % 4) + 1;
+			glPushMatrix();
+			glTranslated(z - GSZ / 2, ground[x + 2][z] + 0.15, x + 2 - GSZ / 2);
+			glRotated(45, 0, 1, 0);
+			glScaled(1, numFloors / 2 + 1, 1);
+			drawHouse(numFloors, numWindows);//mid bottom always (0, 0, 0) to changed translate this with tranformation
+			glPopMatrix();
+		}
+
 		counter++;
 		z--;
 	}
-	glDisable(GL_TEXTURE_2D);
+	
 }
 
 void flatDown() {
 	int x = desiredPoint.x;
 	int z = desiredPoint.z;
 	int counter = 0;
-	glEnable(GL_TEXTURE_2D);
-	glBindTexture(GL_TEXTURE_2D, 1);
-	glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
 	while (z + 1 < GSZ && checkpointAboveAllWater(x, z) && checkpointAboveAllWater(x - 1, z) && checkpointAboveAllWater(x + 1, z) && checkpointAboveAllWater(x, z  + 1) && checkpointAboveAllWater(x - 1, z + 1) && checkpointAboveAllWater(x + 1, z + 1) && x - 1 >= 0 && x + 1 < GSZ) {
-		ground[x - 1][z] = ground[x + 1][z] = ground[x][z];
-		ground[x - 1][z + 1] = ground[x + 1][z + 1] = ground[x][z + 1];
-		riverWaterHight[x - 1][z] = riverWaterHight[x + 1][z] = riverWaterHight[x][z] = -1;
-		riverWaterHight[x - 1][z + 1] = riverWaterHight[x + 1][z + 1] = riverWaterHight[x][z + 1] = -1;
+		glEnable(GL_TEXTURE_2D);
+		glBindTexture(GL_TEXTURE_2D, 1);
+		glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
+		ground[x - 2][z] = ground[x + 2][z] = ground[x - 1][z] = ground[x + 1][z] = ground[x][z];
+		ground[x - 2][z + 1] = ground[x + 2][z + 1] = ground[x - 1][z + 1] = ground[x + 1][z + 1] = ground[x][z + 1];
+		riverWaterHight[x - 2][z] = riverWaterHight[x + 2][z] = riverWaterHight[x - 1][z] = riverWaterHight[x + 1][z] = riverWaterHight[x][z] = -1;
+		riverWaterHight[x - 2][z + 1] = riverWaterHight[x + 2][z + 1] = riverWaterHight[x - 1][z + 1] = riverWaterHight[x + 1][z + 1] = riverWaterHight[x][z + 1] = -1;
 		
 		if (counter % 8 == 0) {//croos walk
 
@@ -715,14 +791,42 @@ void flatDown() {
 			glEnd();
 
 		}
-		counter++;
+		glDisable(GL_TEXTURE_2D);
 
+		//buildings
+		if (counter % 2 == 0 && CheckForHouse(x - 2, z))
+		{
+			indexRoofColors = counter % 3;
+			int numWindows = (counter % 4) + 1;
+			int numFloors = (counter % 4) + 1;
+			glPushMatrix();
+			glTranslated(z - GSZ / 2, ground[x - 2][z] + 0.15, x - 2 - GSZ / 2);
+			glRotated(45, 0, 1, 0);
+			glScaled(1, numFloors / 2 + 1, 1);
+			drawHouse(numFloors, numWindows);//mid bottom always (0, 0, 0) to changed translate this with tranformation
+			glPopMatrix();
+		}
+		if (counter % 2 == 0 && CheckForHouse(x + 2, z))
+		{
+			indexRoofColors = counter % 3;
+			int numWindows = (counter % 4) + 1;
+			int numFloors = (counter % 4) + 1;
+			glPushMatrix();
+			glTranslated(z - GSZ / 2, ground[x + 2][z] + 0.15, x + 2 - GSZ / 2);
+			glRotated(45, 0, 1, 0);
+			glScaled(1, numFloors / 2 + 1, 1);
+			drawHouse(numFloors, numWindows);//mid bottom always (0, 0, 0) to changed translate this with tranformation
+			glPopMatrix();
+		}
+
+		counter++;
 		z++;
 	}
-	glDisable(GL_TEXTURE_2D);
+	
 }
 
 void flattenRoad() {
+	flatRight();
 	//river water from right so we build city from left
 	if (desiredPoint.x + 2 < GSZ) {
 		bool isRiverWaterRight = riverWaterHight[desiredPoint.x + 2][desiredPoint.z] > 0 && riverWaterHight[desiredPoint.x + 2][desiredPoint.z] > ground[desiredPoint.x + 2][desiredPoint.z];
@@ -737,7 +841,7 @@ void flattenRoad() {
 		bool isRiverWaterLeft = riverWaterHight[desiredPoint.x - 2][desiredPoint.z] > 0 && riverWaterHight[desiredPoint.x - 2][desiredPoint.z] > ground[desiredPoint.x - 2][desiredPoint.z];
 		if (isRiverWaterLeft)
 		{
-			flatLeft();
+			//flatLeft();
 			return;
 		}
 	}
