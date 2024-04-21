@@ -41,6 +41,11 @@ double riverWaterHight[GSZ][GSZ] = { 0 };
 bool floodFillVisited[GSZ][GSZ] = { false };
 POINT2D desiredPoint = {-100, -100};
 
+bool stateFlatRight = false;
+bool stateFlatLeft = false;
+bool stateFlatUp = false;
+bool stateFlatDown = false;
+
 
 typedef struct {
 	double red, green, blue;
@@ -52,6 +57,8 @@ int indexRoofColors = 0; //0 or 1 or 2
 void UpdateGround3();
 void Smooth();
 void HydraulicErrosion();
+bool checkpointAboveAllWater(int x, int z);
+
 
 void initRiverWaterHight() {
 	for (int i = 0; i < GSZ; i++) {
@@ -203,9 +210,33 @@ void FloodFillIterative(int x, int z)
 		// 2. save current point coordinates
 		x = current.x;  
 		z = current.z;
-		if (ground[x][z] > 0 && ground[x][z] > riverWaterHight[x][z] && ( (x + 2 < GSZ && ground[x + 2][z] < riverWaterHight[x + 2][z] && 0 < riverWaterHight[x + 2][z] && x + 3 < GSZ && ground[x + 3][z] < riverWaterHight[x + 3][z] && 0 < riverWaterHight[x + 3][z] && ( (riverUp(x + 2, z + 1) && riverUp(x + 2, z + 2) && riverUp(x + 2, z + 3) && seaUp(x + 2, z + 4) ) || (riverUp(x + 2, z - 1) && riverUp(x + 2, z - 2) && riverUp(x + 2, z - 3) && seaUp(x, z - 4) ) )) || (x - 2 >= 0 && ground[x - 2][z] < riverWaterHight[x - 2][z] && 0 < riverWaterHight[x - 2][z] && x - 3 >= 0 && ground[x - 3][z] < riverWaterHight[x - 3][z] && 0 < riverWaterHight[x - 3][z] && ((riverUp(x - 2, z + 1) && riverUp(x - 2, z + 2) && riverUp(x - 2, z + 3) && seaUp(x - 2, z + 4)) || (riverUp(x - 2, z - 1) && riverUp(x - 2, z - 2) && riverUp(x - 2, z - 3) && seaUp(x - 2, z - 4)) )) || (z + 2 < GSZ && ground[x][z + 2] < riverWaterHight[x][z + 2] && 0 < riverWaterHight[x][z + 2] && z + 3 < GSZ && ground[x][z + 3] < riverWaterHight[x][z + 3] && 0 < riverWaterHight[x][z + 3] && ((riverUp(x + 1, z + 2) && riverUp(x + 2, z + 2) && riverUp(x + 3, z + 2) && seaUp(x + 4, z + 2)) || (riverUp(x - 1, z + 2) && riverUp(x - 2, z + 2) && riverUp(x - 3, z + 2) && seaUp(x - 4, z + 2))))  || (z - 2 >= 0 && ground[x][z - 2] < riverWaterHight[x][z - 2] && 0 < riverWaterHight[x][z - 2] && z - 3 >= 0 && ground[x][z - 3] < riverWaterHight[x][z - 3] && 0 < riverWaterHight[x][z - 3] && ((riverUp(x + 1, z-2) && riverUp(x + 2, z - 2) && riverUp(x + 3, z - 2) && seaUp(x + 4, z - 2)) || (riverUp(x - 1, z - 2) && riverUp(x - 2, z - 2) && riverUp(x - 3, z - 2) && seaUp(x - 4, z - 2))   ))     )) {
+		/*if (ground[x][z] > 0 && ground[x][z] > riverWaterHight[x][z] && ((x + 2 < GSZ && ground[x + 2][z] < riverWaterHight[x + 2][z] && 0 < riverWaterHight[x + 2][z] && x + 3 < GSZ && ground[x + 3][z] < riverWaterHight[x + 3][z] && 0 < riverWaterHight[x + 3][z] && ((riverUp(x + 2, z + 1) && riverUp(x + 2, z + 2) && riverUp(x + 2, z + 3) && seaUp(x + 2, z + 4)) || (riverUp(x + 2, z - 1) && riverUp(x + 2, z - 2) && riverUp(x + 2, z - 3) && seaUp(x, z - 4)))) || (x - 2 >= 0 && ground[x - 2][z] < riverWaterHight[x - 2][z] && 0 < riverWaterHight[x - 2][z] && x - 3 >= 0 && ground[x - 3][z] < riverWaterHight[x - 3][z] && 0 < riverWaterHight[x - 3][z] && ((riverUp(x - 2, z + 1) && riverUp(x - 2, z + 2) && riverUp(x - 2, z + 3) && seaUp(x - 2, z + 4)) || (riverUp(x - 2, z - 1) && riverUp(x - 2, z - 2) && riverUp(x - 2, z - 3) && seaUp(x - 2, z - 4)))) || (z + 2 < GSZ && ground[x][z + 2] < riverWaterHight[x][z + 2] && 0 < riverWaterHight[x][z + 2] && z + 3 < GSZ && ground[x][z + 3] < riverWaterHight[x][z + 3] && 0 < riverWaterHight[x][z + 3] && ((riverUp(x + 1, z + 2) && riverUp(x + 2, z + 2) && riverUp(x + 3, z + 2) && seaUp(x + 4, z + 2)) || (riverUp(x - 1, z + 2) && riverUp(x - 2, z + 2) && riverUp(x - 3, z + 2) && seaUp(x - 4, z + 2)))) || (z - 2 >= 0 && ground[x][z - 2] < riverWaterHight[x][z - 2] && 0 < riverWaterHight[x][z - 2] && z - 3 >= 0 && ground[x][z - 3] < riverWaterHight[x][z - 3] && 0 < riverWaterHight[x][z - 3] && ((riverUp(x + 1, z - 2) && riverUp(x + 2, z - 2) && riverUp(x + 3, z - 2) && seaUp(x + 4, z - 2)) || (riverUp(x - 1, z - 2) && riverUp(x - 2, z - 2) && riverUp(x - 3, z - 2) && seaUp(x - 4, z - 2)))))) {
 			desiredPoint.x = x;
 			desiredPoint.z = z;
+			break;
+		}*/
+		if (checkpointAboveAllWater(x, z) && riverUp(x + 2, z) && riverUp(x + 3, z) && ((riverUp(x + 2, z + 1) && riverUp(x + 2, z + 2) && riverUp(x + 2, z + 3) && seaUp(x + 2, z + 4)) || (riverUp(x + 2, z - 1) && riverUp(x + 2, z - 2) && riverUp(x + 2, z - 3) && seaUp(x + 2, z - 4)))) {
+			desiredPoint.x = x;
+			desiredPoint.z = z;
+			stateFlatRight = true;
+			break;
+		}
+		else if (checkpointAboveAllWater(x, z) && riverUp(x - 2, z) && riverUp(x - 3, z) && ((riverUp(x - 2, z + 1) && riverUp(x - 2, z + 2) && riverUp(x - 2, z + 3) && seaUp(x - 2, z + 4)) || (riverUp(x - 2, z - 1) && riverUp(x - 2, z - 2) && riverUp(x - 2, z - 3) && seaUp(x - 2, z - 4)))) {
+			desiredPoint.x = x;
+			desiredPoint.z = z;
+			stateFlatLeft = true;
+			break;
+		}
+		else if (checkpointAboveAllWater(x, z) && riverUp(x, z + 2) && riverUp(x, z + 3) && ((riverUp(x + 1, z + 2) && riverUp(x + 2, z + 2) && riverUp(x + 3, z + 2) && seaUp(x + 4, z + 2)) || (riverUp(x - 1, z + 2) && riverUp(x - 2, z + 2) && riverUp(x - 3, z + 2) && seaUp(x - 4, z + 2)))) {
+			desiredPoint.x = x;
+			desiredPoint.z = z;
+			stateFlatUp = true;
+			break;
+		}
+		else if (checkpointAboveAllWater(x, z) && riverUp(x, z - 2) && riverUp(x, z - 3) && ((riverUp(x + 1, z - 2) && riverUp(x + 2, z - 2) && riverUp(x + 3, z - 2) && seaUp(x + 4, z - 2)) || (riverUp(x - 1, z - 2) && riverUp(x - 2, z - 2) && riverUp(x - 3, z - 2) && seaUp(x - 4, z - 2)))) {
+			desiredPoint.x = x;
+			desiredPoint.z = z;
+			stateFlatDown = true;
 			break;
 		}
 		else {
@@ -216,21 +247,18 @@ void FloodFillIterative(int x, int z)
 				current.z = z;
 				myStack.push_back(current);
 			}
-			// try going down
 			if (x - 2 >= 0 && !floodFillVisited[x - 2][z])
 			{
 				current.x = x - 2;
 				current.z = z;
 				myStack.push_back(current);
 			}
-			// try going right
 			if (z + 2 < GSZ && !floodFillVisited[x][z + 2])
 			{
 				current.x = x;
 				current.z = z + 2;
 				myStack.push_back(current);
 			}
-			// try going left
 			if (z - 2 >= 0 && !floodFillVisited[x][z - 2])
 			{
 				current.x = x;
@@ -1104,8 +1132,6 @@ void flatUp() {
 		}
 		z++;
 	}
-
-	
 }
 
 void flatDown() {
@@ -1260,40 +1286,24 @@ void flatDown() {
 
 void flattenRoad() {
 	//river water from right so we build city from left
-	if (desiredPoint.x + 2 < GSZ) {
-		bool isRiverWaterRight = riverWaterHight[desiredPoint.x + 2][desiredPoint.z] > 0 && riverWaterHight[desiredPoint.x + 2][desiredPoint.z] > ground[desiredPoint.x + 2][desiredPoint.z];
-		if (isRiverWaterRight)
-		{
-			flatRight();
-			return;
-		}
+	if (stateFlatRight) {
+		flatRight();
+		return;
 	}
 	//river water from left so we build city from right
-	if (desiredPoint.x - 2 >= 0) {
-		bool isRiverWaterLeft = riverWaterHight[desiredPoint.x - 2][desiredPoint.z] > 0 && riverWaterHight[desiredPoint.x - 2][desiredPoint.z] > ground[desiredPoint.x - 2][desiredPoint.z];
-		if (isRiverWaterLeft)
-		{
-			flatLeft();
-			return;
-		}
+	else if (stateFlatLeft) {
+		flatLeft();
+		return;
 	}
 	//river water from up so we build city from down
-	if (desiredPoint.z + 2 < GSZ) {
-		bool isRiverWaterUp = riverWaterHight[desiredPoint.x][desiredPoint.z + 2] > 0 && riverWaterHight[desiredPoint.x][desiredPoint.z + 2] > ground[desiredPoint.x][desiredPoint.z + 2];
-		if (isRiverWaterUp)
-		{
-			flatUp();
-			return;
-		}
+	else if (stateFlatUp) {
+		flatUp();
+		return;
 	}
 	//river water from down so we build city from up
-	if (desiredPoint.z - 2 < GSZ) {
-		bool isRiverWaterDown = riverWaterHight[desiredPoint.x][desiredPoint.z - 2] > 0 && riverWaterHight[desiredPoint.x][desiredPoint.z - 2] > ground[desiredPoint.x][desiredPoint.z - 2];
-		if (isRiverWaterDown)
-		{
-			flatDown();
-			return;
-		}
+	else if (stateFlatDown) {
+		flatDown();
+		return;
 	}
 }
 
