@@ -38,7 +38,6 @@ double angular_speed = 0;
 double ground[GSZ][GSZ] = { 0 };
 double riverWaterHight[GSZ][GSZ] = { 0 };
 
-bool floodFillVisited[GSZ][GSZ] = { false };
 POINT2D desiredPoint = {-100, -100};
 
 bool stateFlatRight = false;
@@ -197,6 +196,7 @@ bool riverUp(int x, int z) {
 // uses stack to uvercome the recursion
 void FloodFillIterative(int x, int z)
 {
+	bool floodFillVisited[GSZ][GSZ] = { false };
 	vector <POINT2D> myStack;
 
 	POINT2D current = {x, z};
@@ -210,11 +210,6 @@ void FloodFillIterative(int x, int z)
 		// 2. save current point coordinates
 		x = current.x;  
 		z = current.z;
-		/*if (ground[x][z] > 0 && ground[x][z] > riverWaterHight[x][z] && ((x + 2 < GSZ && ground[x + 2][z] < riverWaterHight[x + 2][z] && 0 < riverWaterHight[x + 2][z] && x + 3 < GSZ && ground[x + 3][z] < riverWaterHight[x + 3][z] && 0 < riverWaterHight[x + 3][z] && ((riverUp(x + 2, z + 1) && riverUp(x + 2, z + 2) && riverUp(x + 2, z + 3) && seaUp(x + 2, z + 4)) || (riverUp(x + 2, z - 1) && riverUp(x + 2, z - 2) && riverUp(x + 2, z - 3) && seaUp(x, z - 4)))) || (x - 2 >= 0 && ground[x - 2][z] < riverWaterHight[x - 2][z] && 0 < riverWaterHight[x - 2][z] && x - 3 >= 0 && ground[x - 3][z] < riverWaterHight[x - 3][z] && 0 < riverWaterHight[x - 3][z] && ((riverUp(x - 2, z + 1) && riverUp(x - 2, z + 2) && riverUp(x - 2, z + 3) && seaUp(x - 2, z + 4)) || (riverUp(x - 2, z - 1) && riverUp(x - 2, z - 2) && riverUp(x - 2, z - 3) && seaUp(x - 2, z - 4)))) || (z + 2 < GSZ && ground[x][z + 2] < riverWaterHight[x][z + 2] && 0 < riverWaterHight[x][z + 2] && z + 3 < GSZ && ground[x][z + 3] < riverWaterHight[x][z + 3] && 0 < riverWaterHight[x][z + 3] && ((riverUp(x + 1, z + 2) && riverUp(x + 2, z + 2) && riverUp(x + 3, z + 2) && seaUp(x + 4, z + 2)) || (riverUp(x - 1, z + 2) && riverUp(x - 2, z + 2) && riverUp(x - 3, z + 2) && seaUp(x - 4, z + 2)))) || (z - 2 >= 0 && ground[x][z - 2] < riverWaterHight[x][z - 2] && 0 < riverWaterHight[x][z - 2] && z - 3 >= 0 && ground[x][z - 3] < riverWaterHight[x][z - 3] && 0 < riverWaterHight[x][z - 3] && ((riverUp(x + 1, z - 2) && riverUp(x + 2, z - 2) && riverUp(x + 3, z - 2) && seaUp(x + 4, z - 2)) || (riverUp(x - 1, z - 2) && riverUp(x - 2, z - 2) && riverUp(x - 3, z - 2) && seaUp(x - 4, z - 2)))))) {
-			desiredPoint.x = x;
-			desiredPoint.z = z;
-			break;
-		}*/
 		if (checkpointAboveAllWater(x, z) && riverUp(x + 2, z) && riverUp(x + 3, z) && ((riverUp(x + 2, z + 1) && riverUp(x + 2, z + 2) && riverUp(x + 2, z + 3) && seaUp(x + 2, z + 4)) || (riverUp(x + 2, z - 1) && riverUp(x + 2, z - 2) && riverUp(x + 2, z - 3) && seaUp(x + 2, z - 4)))) {
 			desiredPoint.x = x;
 			desiredPoint.z = z;
@@ -241,28 +236,28 @@ void FloodFillIterative(int x, int z)
 		}
 		else {
 			// 3. add all relevant neighbour points to myStack
-			if (x + 2 < GSZ && !floodFillVisited[x + 2][z])
+			if (x + 1 < GSZ && !floodFillVisited[x + 1][z])
 			{
-				current.x = x + 2;
+				current.x = x + 1;
 				current.z = z;
 				myStack.push_back(current);
 			}
-			if (x - 2 >= 0 && !floodFillVisited[x - 2][z])
+			if (x - 1 >= 0 && !floodFillVisited[x - 1][z])
 			{
-				current.x = x - 2;
+				current.x = x - 1;
 				current.z = z;
 				myStack.push_back(current);
 			}
-			if (z + 2 < GSZ && !floodFillVisited[x][z + 2])
+			if (z + 1 < GSZ && !floodFillVisited[x][z + 1])
 			{
 				current.x = x;
-				current.z = z + 2;
+				current.z = z + 1;
 				myStack.push_back(current);
 			}
-			if (z - 2 >= 0 && !floodFillVisited[x][z - 2])
+			if (z - 1 >= 0 && !floodFillVisited[x][z - 1])
 			{
 				current.x = x;
-				current.z = z - 2;
+				current.z = z - 1;
 				myStack.push_back(current);
 			}
 		}
