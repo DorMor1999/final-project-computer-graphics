@@ -185,10 +185,12 @@ void UpdateGround3()
 
 }
 
+//check if sea water in top 
 bool seaUp(int x, int z) {
 	return x >= 0 && x < GSZ && z >= 0 && z < GSZ && 0 > ground[x][z] && 0 > riverWaterHight[x][z];
 }
 
+//check if river water in top 
 bool riverUp(int x, int z) {
 	return x >= 0 && x < GSZ && z >= 0 && z < GSZ && 0 < riverWaterHight[x][z] && ground[x][z] < riverWaterHight[x][z];
 }
@@ -196,6 +198,7 @@ bool riverUp(int x, int z) {
 // uses stack to uvercome the recursion
 void FloodFillIterative(int x, int z)
 {
+	//hush table for checking which point we already visit
 	bool floodFillVisited[GSZ][GSZ] = { false };
 	vector <POINT2D> myStack;
 
@@ -214,25 +217,25 @@ void FloodFillIterative(int x, int z)
 			desiredPoint.x = x;
 			desiredPoint.z = z;
 			stateFlatRight = true;
-			break;
+			return;
 		}
 		else if (checkpointAboveAllWater(x, z) && riverUp(x - 2, z) && riverUp(x - 3, z) && ((riverUp(x - 2, z + 1) && riverUp(x - 2, z + 2) && riverUp(x - 2, z + 3) && seaUp(x - 2, z + 4)) || (riverUp(x - 2, z - 1) && riverUp(x - 2, z - 2) && riverUp(x - 2, z - 3) && seaUp(x - 2, z - 4)))) {
 			desiredPoint.x = x;
 			desiredPoint.z = z;
 			stateFlatLeft = true;
-			break;
+			return;
 		}
 		else if (checkpointAboveAllWater(x, z) && riverUp(x, z + 2) && riverUp(x, z + 3) && ((riverUp(x + 1, z + 2) && riverUp(x + 2, z + 2) && riverUp(x + 3, z + 2) && seaUp(x + 4, z + 2)) || (riverUp(x - 1, z + 2) && riverUp(x - 2, z + 2) && riverUp(x - 3, z + 2) && seaUp(x - 4, z + 2)))) {
 			desiredPoint.x = x;
 			desiredPoint.z = z;
 			stateFlatUp = true;
-			break;
+			return;
 		}
 		else if (checkpointAboveAllWater(x, z) && riverUp(x, z - 2) && riverUp(x, z - 3) && ((riverUp(x + 1, z - 2) && riverUp(x + 2, z - 2) && riverUp(x + 3, z - 2) && seaUp(x + 4, z - 2)) || (riverUp(x - 1, z - 2) && riverUp(x - 2, z - 2) && riverUp(x - 3, z - 2) && seaUp(x - 4, z - 2)))) {
 			desiredPoint.x = x;
 			desiredPoint.z = z;
 			stateFlatDown = true;
-			break;
+			return;
 		}
 		else {
 			// 3. add all relevant neighbour points to myStack
@@ -261,23 +264,23 @@ void FloodFillIterative(int x, int z)
 				myStack.push_back(current);
 			}
 		}
+		//point visited 
 		floodFillVisited[x][z] = true;
 	}
 }
 
 void HydraulicErrosion() {
-	
-
 	//get random cordinates
 	int x = rand() % GSZ;
 	int z = rand() % GSZ;
+	//conidition checks if one of my neighbours is lower
 	bool condition = false;
 	do
 	{
 		condition = false;
 		POINT3 nextPoint = { x, ground[x][z], z};
 
-		if (x < 99) {
+		if (x < GSZ) {
 			POINT3 xHigherPoint = { x + 1, ground[x + 1][z], z };
 			if (xHigherPoint.y < nextPoint.y) {
 				nextPoint.y = xHigherPoint.y;
@@ -287,7 +290,7 @@ void HydraulicErrosion() {
 			}
 		}
 		
-		if (z < 99) {
+		if (z < GSZ) {
 			POINT3 zHigherPoint = { x, ground[x][z + 1], z + 1 };
 			if (zHigherPoint.y < nextPoint.y) {
 				nextPoint.y = zHigherPoint.y;
@@ -297,7 +300,7 @@ void HydraulicErrosion() {
 			}
 		}
 		
-		if (x > 0) {
+		if (x > -1) {
 			POINT3 xLowerPoint = { x - 1, ground[x - 1][z], z };
 			if (xLowerPoint.y < nextPoint.y) {
 				nextPoint.y = xLowerPoint.y;
@@ -307,7 +310,7 @@ void HydraulicErrosion() {
 			}
 		}
 		
-		if (z > 0) {
+		if (z > -1) {
 			POINT3 zLowerPoint = { x, ground[x][z - 1], z - 1 };
 			if (zLowerPoint.y < nextPoint.y) {
 				nextPoint.y = zLowerPoint.y;
@@ -321,6 +324,7 @@ void HydraulicErrosion() {
 		//make this place lower
 		ground[x][z] -= 0.0001;
 
+		//move to next point
 		x = nextPoint.x;
 		z = nextPoint.z;
 	} while (condition);
@@ -409,7 +413,7 @@ void DrawFloor()
 
 }
 
-// true if above sea and river
+// true if ground above sea and river
 bool checkpointAboveAllWater(int x, int z) {
 	return x >= 0 && x < GSZ && z >= 0 && z < GSZ && ground[x][z] > 0 && ground[x][z] > riverWaterHight[x][z];
 }
@@ -663,16 +667,20 @@ void drawBridge() {
 
 }
 
+// check if we have space for house
 bool CheckForHouse(int x, int z) {
 	return x - 1 >= 0 && x + 1 < GSZ && z - 1 >= 0 && z + 1 < GSZ && checkpointAboveAllWater(x, z) && checkpointAboveAllWater(x, z - 1) && checkpointAboveAllWater(x, z + 1) && checkpointAboveAllWater(x + 1, z) && checkpointAboveAllWater(x + 1, z - 1) && checkpointAboveAllWater(x + 1, z + 1) && checkpointAboveAllWater(x - 1, z) && checkpointAboveAllWater(x - 1, z - 1) && checkpointAboveAllWater(x - 1, z + 1);
 }
 
+//check if any water above the bridge if true we reduce the hight of water
 void checkPointMaxHightAndReduce(int x, int z) {
 	if (x >= 0 && x < GSZ && z >= 0 && z < GSZ) {
+		//if river water to high
 		if (riverWaterHight[x][z] > 1.3 && riverWaterHight[x][z] > ground[x][z]) {
 			riverWaterHight[x][z] = 1.3;
 			ground[x][z] = 1.2;
 		}
+		//if ground to high
 		else if (ground[x][z] > 1.3 && riverWaterHight[x][z] < ground[x][z]) {
 			riverWaterHight[x][z] = 1.2;
 			ground[x][z] = 1.3;
@@ -684,7 +692,7 @@ void flatRight() {
 	int x = desiredPoint.x;
 	int z = desiredPoint.z;
 	int counter = 0;
-	
+	// loop for city road and buildings
 	while (x > 0 && checkpointAboveAllWater(x, z) && checkpointAboveAllWater(x, z - 1) && checkpointAboveAllWater(x, z + 1) && checkpointAboveAllWater(x - 1, z) && checkpointAboveAllWater(x - 1, z - 1) && checkpointAboveAllWater(x - 1, z + 1) && z - 2 >= 0 && z + 2 < GSZ) {
 		glEnable(GL_TEXTURE_2D);
 		glBindTexture(GL_TEXTURE_2D, 1);
@@ -835,7 +843,7 @@ void flatLeft() {
 	int x = desiredPoint.x;
 	int z = desiredPoint.z;
 	int counter = 0;
-	
+	// loop for city road and buildings
 	while (x + 1 < GSZ && checkpointAboveAllWater(x, z) && checkpointAboveAllWater(x, z - 1) && checkpointAboveAllWater(x, z + 1) && checkpointAboveAllWater(x + 1, z) && checkpointAboveAllWater(x + 1, z - 1) && checkpointAboveAllWater(x + 1, z + 1) && z - 1 >= 0 && z + 1 < GSZ) {
 		glEnable(GL_TEXTURE_2D);
 		glBindTexture(GL_TEXTURE_2D, 1);
@@ -984,6 +992,7 @@ void flatUp() {
 	int x = desiredPoint.x;
 	int z = desiredPoint.z;
 	int counter = 0;
+	// loop for city road and buildings
 	while (z > 0 && checkpointAboveAllWater(x, z) && checkpointAboveAllWater(x - 1, z) && checkpointAboveAllWater(x + 1, z) && checkpointAboveAllWater(x, z - 1) && checkpointAboveAllWater(x - 1, z - 1) && checkpointAboveAllWater(x + 1, z - 1) && x - 1 >= 0 && x + 1 < GSZ) {
 		glEnable(GL_TEXTURE_2D);
 		glBindTexture(GL_TEXTURE_2D, 1);
@@ -1133,6 +1142,7 @@ void flatDown() {
 	int x = desiredPoint.x;
 	int z = desiredPoint.z;
 	int counter = 0;
+	// loop for city road and buildings
 	while (z + 1 < GSZ && checkpointAboveAllWater(x, z) && checkpointAboveAllWater(x - 1, z) && checkpointAboveAllWater(x + 1, z) && checkpointAboveAllWater(x, z  + 1) && checkpointAboveAllWater(x - 1, z + 1) && checkpointAboveAllWater(x + 1, z + 1) && x - 1 >= 0 && x + 1 < GSZ) {
 		glEnable(GL_TEXTURE_2D);
 		glBindTexture(GL_TEXTURE_2D, 1);
@@ -1325,6 +1335,7 @@ void display()
 
 	DrawFloor();
 	
+	//responsble on the HydraulicErrosion function
 	if (!stopHydraulicErrosion && desiredPoint.x == -100) {
 		for (int i = 0; i < 2; i++)
 		{
@@ -1339,20 +1350,10 @@ void display()
 		}
 	}
 
-	
+	// we found point so we build city
 	if (desiredPoint.x != -100) {
 		flattenRoad(); 
 	}
-	
-	
-	
-
-
-	
-	
-
-
-	
 
 	glutSwapBuffers(); // show all
 }
@@ -1409,6 +1410,7 @@ void SpecialKeys(int key, int x, int y)
 
 void mouse(int button, int state, int x, int y)
 {
+	//check for left click on the mouse
 	if (button == GLUT_LEFT_BUTTON && state == GLUT_DOWN)
 		stopHydraulicErrosion = !stopHydraulicErrosion;
 }
