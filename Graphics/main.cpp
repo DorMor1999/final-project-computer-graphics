@@ -280,7 +280,7 @@ void HydraulicErrosion() {
 		condition = false;
 		POINT3 nextPoint = { x, ground[x][z], z};
 
-		if (x < GSZ) {
+		if (x < 99) {
 			POINT3 xHigherPoint = { x + 1, ground[x + 1][z], z };
 			if (xHigherPoint.y < nextPoint.y) {
 				nextPoint.y = xHigherPoint.y;
@@ -290,7 +290,7 @@ void HydraulicErrosion() {
 			}
 		}
 		
-		if (z < GSZ) {
+		if (z < 99) {
 			POINT3 zHigherPoint = { x, ground[x][z + 1], z + 1 };
 			if (zHigherPoint.y < nextPoint.y) {
 				nextPoint.y = zHigherPoint.y;
@@ -300,7 +300,7 @@ void HydraulicErrosion() {
 			}
 		}
 		
-		if (x > -1) {
+		if (x > 0) {
 			POINT3 xLowerPoint = { x - 1, ground[x - 1][z], z };
 			if (xLowerPoint.y < nextPoint.y) {
 				nextPoint.y = xLowerPoint.y;
@@ -310,7 +310,7 @@ void HydraulicErrosion() {
 			}
 		}
 		
-		if (z > -1) {
+		if (z > 0) {
 			POINT3 zLowerPoint = { x, ground[x][z - 1], z - 1 };
 			if (zLowerPoint.y < nextPoint.y) {
 				nextPoint.y = zLowerPoint.y;
